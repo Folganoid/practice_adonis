@@ -9,6 +9,7 @@ class UserSchema extends Schema {
         .string('username', 80)
         .notNullable()
         .unique();
+      table.string('role', 10).notNullable();
       table
         .string('email', 254)
         .notNullable()

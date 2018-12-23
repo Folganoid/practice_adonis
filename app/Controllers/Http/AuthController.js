@@ -1,4 +1,3 @@
-
 class AuthController {
   async login({ request }) {
     return [
