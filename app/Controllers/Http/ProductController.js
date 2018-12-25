@@ -167,7 +167,7 @@ class ProductController {
 
                 message = "product was updated successfully";
             } catch (err) {
-                code = 404;
+                code = 500;
                 ok = false;
                 message = err;
             }
@@ -288,7 +288,7 @@ class ProductController {
 
                 message = "product and linked attributes was deleted successfully";
             } catch (err) {
-                code = 404;
+                code = 500;
                 ok = false;
                 message = err;
             }

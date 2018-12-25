@@ -26,6 +26,6 @@ Route.delete('/product/:id', 'ProductController.deleteProduct');
 
 // attributes
 Route.get('/attribute/:productId', 'AttributeController.getAttribute');
-Route.post('/attribute', 'AttributeController.addAttribute');
+Route.post('/attribute/:id', 'AttributeController.addAttribute');
 Route.put('/attribute/:id', 'AttributeController.updateAttribute');
 Route.delete('/attribute/:id', 'AttributeController.deleteAttribute');

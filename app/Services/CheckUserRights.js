@@ -51,8 +51,24 @@ async function checkProductOwner(token, prodId) {
     }
 }
 
-function checkAttributeOwner(token, attrId) {
-    return true
+async function checkAttributeOwner(token, attrId) {
+    try {
+        const isowner = await Database.table('products')
+            .select('products.id as product_id', 'users.id as user_id')
+            .innerJoin('users', 'users.id', 'products.user_id')
+            .innerJoin('attributes', 'attributes.product_id', 'products.id')
+            .innerJoin('tokens', 'tokens.user_id', 'users.id')
+            .where('tokens.token', token)
+            .where('attributes.id', attrId);
+
+        if (isowner.length === 0) {
+            return false;
+        } else {
+            return true;
+        }
+    } catch (e) {
+        return false;
+    }
 }
 
 module.exports.checkAdmin = checkAdmin;
