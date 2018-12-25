@@ -13,22 +13,19 @@
 
 /** @type {typeof import('@adonisjs/framework/src/Route/Manager')} */
 const Route = use('Route');
-const Database = use('Database');
 
+// test
 Route.get('/', () => ({ status: 'Ok', version: '1.0.0' }));
-
-//TODO delete this
-Route.get('/users', async () => {
-    return await Database.table('users').select('*');
-});
 
 // products
 Route.get('/product', 'ProductController.getProduct');
 Route.get('/product/:id', 'ProductController.getProductOne');
-Route.put('/product', 'ProductController.updateProduct');
 Route.post('/product', 'ProductController.addProduct');
+Route.put('/product/:id', 'ProductController.updateProduct');
+Route.delete('/product/:id', 'ProductController.deleteProduct');
 
 // attributes
 Route.get('/attribute/:productId', 'AttributeController.getAttribute');
-Route.put('/attribute', 'AttributeController.updateAttribute');
 Route.post('/attribute', 'AttributeController.addAttribute');
+Route.put('/attribute/:id', 'AttributeController.updateAttribute');
+Route.delete('/attribute/:id', 'AttributeController.deleteAttribute');

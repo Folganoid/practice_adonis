@@ -22,6 +22,14 @@ class AttributeController {
             { key: 3 },
         ];
     }
+
+    async deleteAttribute({ request }) {
+        return [
+            { key: 1 },
+            { key: 2 },
+            { key: 3 },
+        ];
+    }
 }
 
 module.exports = AttributeController;
