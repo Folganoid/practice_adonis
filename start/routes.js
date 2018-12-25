@@ -17,8 +17,18 @@ const Database = use('Database');
 
 Route.get('/', () => ({ status: 'Ok', version: '1.0.0' }));
 
-Route.get('/test', async () => {
+//TODO delete this
+Route.get('/users', async () => {
     return await Database.table('users').select('*');
 });
 
-Route.post('/login', 'AuthController.login');
+// products
+Route.get('/product', 'ProductController.getProduct');
+Route.get('/product/:id', 'ProductController.getProductOne');
+Route.put('/product', 'ProductController.updateProduct');
+Route.post('/product', 'ProductController.addProduct');
+
+// attributes
+Route.get('/attribute/:productId', 'AttributeController.getAttribute');
+Route.put('/attribute', 'AttributeController.updateAttribute');
+Route.post('/attribute', 'AttributeController.addAttribute');

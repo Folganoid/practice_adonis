@@ -56,7 +56,15 @@ class User extends Command {
 
     }).into('users').returning('id');
 
-    this.info(userId);
+    await Database.insert({
+        user_id: parseInt(userId),
+        token: CustomMd5.generateToken(255),
+        type: 'main',
+        is_revoked: true,
+        created_at: createdAt
+    }).into('tokens').returning('id');
+
+    this.info(`User ${username} created successfully`);
     return process.exit();
   }
 }
