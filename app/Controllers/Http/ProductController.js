@@ -6,8 +6,10 @@
  filterAuthor=user2&
  filterType=mus&
  filterName=a&
- orderBy=price&
- orderDir=desc
+ orderBy=name&
+ orderDir=desc&
+ orderByAttr=price&
+ orderAttrDir=desc
  (or variations without)    - get filtered and sorted products by params
 
  ##POST
@@ -34,65 +36,105 @@ class ProductController {
   async getProduct({ request }) {
     let ok = true;
     let code = 200;
-    let message = "";
-    let prod = [];
-    const filterName = (request._all.filterName !== undefined) ? request._all.filterName : "%";
-    const filterAuthor = (request._all.filterAuthor !== undefined) ? request._all.filterAuthor : "%";
-    const filterType = (request._all.filterType !== undefined) ? request._all.filterType : "%";
+    let message = '';
+    let products = [];
+    let attributes = [];
+    let productIds = [];
+
+    const filterName = request._all.filterName !== undefined ? request._all.filterName : '%';
+    const filterAuthor = request._all.filterAuthor !== undefined ? request._all.filterAuthor : '%';
+    const orderByAttr = request._all.orderByAttr !== undefined ? request._all.orderByAttr : false;
+    const orderAttrDir = request._all.orderAttrDir !== "desc" ? 1 : 0;
     const orderBy = (request._all.orderBy !== undefined) ? request._all.orderBy : 'id';
     const orderDir = (request._all.orderDir !== undefined) ? ((request._all.orderDir === "desc" || request._all.orderDir === "asc") ? request._all.orderDir : "asc") : "asc";
 
     try {
       // get products
-      prod = await Database.table('products')
-
+      products = await Database.table('products')
         .select(
           'products.id',
           'products.name',
-          'products.type',
-          'products.price',
+          'types.name as typeName',
           'products.created_at',
-          'users.username')
-                .orderBy(orderBy, orderDir)
-                .innerJoin('users', 'users.id', 'products.user_id')
-                .where('products.name', "like", `%${filterName}%`)
-                .where('products.type', "like", `%${filterType}%`)
-                .where('users.username', "like", `%${filterAuthor}%`);
+          'users.username',
+        )
+        .orderBy(orderBy, orderDir)
+        .innerJoin('users', 'users.id', 'products.user_id')
+        .innerJoin('types', 'types.id', 'products.type_id')
+        .where('products.name', 'like', `%${filterName}%`)
+        .where('users.username', 'like', `%${filterAuthor}%`);
 
-            // get attributs
-            let attributesId = [];
-            for (let prodKey in prod) {
-                attributesId.push(prod[prodKey].id);
-            }
+      // get attributes
+        for(const prod in products) {
+          productIds.push(products[prod].id);
+        }
 
-            const attributes = await Database.table('attributes').select('*').whereIn('id', attributesId);
+        attributes = await Database.table('attributes')
+        .select(
+                'product_attributes.id',
+                'attributes.name',
+                'product_attributes.value',
+                'product_attributes.product_id as productId',
+                'types.name as typeName',
+            )
+                .innerJoin('product_attributes', 'product_attributes.attribute_id', 'attributes.id')
+                .innerJoin('types', 'types.id', 'attributes.type_id')
+                .whereIn('product_attributes.product_id', productIds);
 
-            for (let attrKey in attributes) {
-                for (let prodKey in prod) {
-                    if (attributes[attrKey].product_id && attributes[attrKey].product_id === prod[prodKey].id) {
-                        if (!prod[prodKey].attributes) prod[prodKey].attributes = [];
-                        prod[prodKey].attributes.push(attributes[attrKey]);
-                    }
+        for(const attr in attributes) {
+            for (const prod in products) {
+                if (attributes[attr].productId === products[prod].id) {
+                    if (!products[prod].attributes) products[prod].attributes = [];
+                    products[prod].attributes.push(attributes[attr]);
                 }
             }
-        } catch (err) {
-            ok = false;
-            code = 404;
-            message = err;
         }
 
-        // not found
-        if (prod.length === 0) {
-            message = "Not found products";
-        }
+        //sort by attribute
+        if (orderByAttr) {
+            products.sort(function (a, b) {
+              let elA = 0;
+              let elB = 0;
 
-        return [
-            { ok: ok },
-            { code: code },
-            { message: message},
-            { product: prod }
-        ];
+              for (const attr in a.attributes) {
+                  if (a.attributes[attr].name === orderByAttr) {
+                      elA = a.attributes[attr].value;
+                      break;
+                  }
+              }
+
+              for (const attr in b.attributes) {
+                  if (b.attributes[attr].name === orderByAttr) {
+                      elB = b.attributes[attr].value;
+                      break;
+                       }
+              }
+
+              if (orderAttrDir === 1) {
+                  return elA - elB;
+              } else {
+                  return elA + elB;
+              }
+            });
+        }
+    } catch (err) {
+      ok = false;
+      code = 404;
+      message = err;
     }
+
+    // not found
+    if (products.length === 0) {
+      message = "Not found products";
+    }
+
+    return [
+      { ok: ok },
+      { code: code },
+      { message: message},
+      { product: products },
+    ];
+  }
 
     /**
      * get one product by id
@@ -104,14 +146,40 @@ class ProductController {
 
         let ok = true;
         let code = 200;
-        let message = "";
-        let prod = [];
+        let message = '';
+        let product = [];
+        let attributes = [];
+
         const productId = request.params.id;
 
         try {
-            prod = await Database.table('products').select('*').where('id', productId);
-            const attributes = await Database.table('attributes').select('*').where('product_id', productId);
-            if (attributes.length > 0) prod[0].attributes = attributes;
+            product = await Database.table('products')
+                .select(
+                    'products.id',
+                    'products.name',
+                    'types.name as typeName',
+                    'products.created_at',
+                    'users.username',
+                )
+                .innerJoin('users', 'users.id', 'products.user_id')
+                .innerJoin('types', 'types.id', 'products.type_id')
+                .where('products.id', productId);
+
+
+            attributes = await Database.table('attributes')
+                .select(
+                    'product_attributes.id',
+                    'attributes.name',
+                    'product_attributes.value',
+                    'product_attributes.product_id as productId',
+                    'types.name as typeName',
+                )
+                .innerJoin('product_attributes', 'product_attributes.attribute_id', 'attributes.id')
+                .innerJoin('types', 'types.id', 'attributes.type_id')
+                .where('product_attributes.product_id', productId);
+
+
+            if (attributes.length > 0) product[0].attributes = attributes;
         } catch (err) {
             ok = false;
             code = 404;
@@ -119,7 +187,7 @@ class ProductController {
         }
 
         // not found
-        if (prod.length === 0) {
+        if (product.length === 0) {
             message = "Not found product with id " + productId;
         }
 
@@ -127,7 +195,7 @@ class ProductController {
             { ok: ok },
             { code: code },
             { message: message},
-            { product: prod }
+            { product: product }
         ];
     }
 
@@ -146,7 +214,6 @@ class ProductController {
         const userToken = request._all.token;
         const productId = request.params.id;
         const name = request._all.name;
-        const price = parseFloat(request._all.price);
         const type = request._all.type;
         const updated_at = new Date();
 
@@ -159,9 +226,20 @@ class ProductController {
                 updated_at: updated_at
             };
 
-            if (name && name.length > 0 && name.length < 80) forUpdate.name = name;
-            if (type && type.length > 0 && type.length < 80) forUpdate.type = type;
-            if (price && typeof price === 'number' && price > 0) forUpdate.price = price;
+            if (name && name.length > 0 && name.length < 255) forUpdate.name = name;
+            if (type && type.length > 0 && type.length < 255) {
+
+                // get type if exist & create if not
+                let typeId = await Database.table('types').select('id').where('name', type);
+                if (typeId.length === 0) {
+                    typeId = await Database.table('types').insert({name: type}).returning('id');
+                    typeId = typeId[0];
+                } else {
+                    typeId = typeId[0].id;
+                }
+
+                forUpdate.type_id = typeId;
+            }
 
             try {
                 await Database
@@ -203,7 +281,6 @@ class ProductController {
 
         const userToken = request._all.token;
         const name = request._all.name;
-        const price = parseFloat(request._all.price);
         const type = request._all.type;
         const created_at = new Date();
 
@@ -216,21 +293,14 @@ class ProductController {
             ok = false;
         }
 
-        if(!name || name.length === 0 || name.length > 80) {
+        if(!name || name.length === 0 || name.length > 255) {
             validate = false;
             message += "Invalid name...";
             code = 404;
             ok = false;
         }
 
-        if(!price || typeof price !== 'number' || price <= 0) {
-            validate = false;
-            message += "Invalid price...";
-            code = 404;
-            ok = false;
-        }
-
-        if(!type || type.length === 0 || type.length > 80) {
+        if(!type || type.length === 0 || type.length > 255) {
             validate = false;
             message += "Invalid type...";
             code = 404;
@@ -242,8 +312,64 @@ class ProductController {
             if (userId.length > 0) {
                 userId = userId[0].user_id;
 
-                await Database.table('products').insert({name, price, type, created_at, user_id: userId});
-                message = "create product successfully";
+                // get type if exist & create if not
+                let typeId = await Database.table('types').select('id').where('name', type);
+                if (typeId.length === 0) {
+                    typeId = await Database.table('types').insert({name: type}).returning('id');
+                    typeId = typeId[0];
+                } else {
+                   typeId = typeId[0].id;
+                }
+
+                // create product
+                const productNew = await Database.table('products').insert({name, type_id: typeId, user_id: userId, created_at}).returning('id');
+                message = "create product successfully...";
+
+                //get attributes
+                let attributes = {};
+                for (const param in request._all) {
+                    if(param !== "name" && param !== "token" && param !== "type") {
+                        attributes[param] = request._all[param];
+                    }
+                }
+
+                //get typesIds
+                let typeIds = {};
+                const typesTmp = await Database.table('types').select('*').whereIn('name', ['string', 'integer']);
+                for (const typeKey in typesTmp) {
+                    typeIds['type' + typesTmp[typeKey].name] = typesTmp[typeKey].id;
+                }
+
+                //get attributeIds
+                let attributeIds = {};
+                const attrsTmp = await Database.table('attributes').select('*');
+                for (const attrKey in attrsTmp) {
+                    attributeIds[attrsTmp[attrKey].name] = [attrsTmp[attrKey].id, attrsTmp[attrKey].type_id];
+                }
+
+
+                for(const attrKey in attributes) {
+                    // define attribute's type id
+                    let typeAttrId = (/^(\d+\.\d+|\d+)$/.test(attributes[attrKey])) ? typeIds['typeinteger'] : typeIds['typestring'];
+
+                    // if attribute not exist in DB
+                    if(!attributeIds[attrKey]) {
+                        // create
+                        const attributeId = await Database.table('attributes').insert({name: attrKey, type_id: typeAttrId}).returning('id');
+                        attributeIds[attrKey] = [attributeId[0], typeAttrId];
+                    }
+
+                    // check type
+                    if (typeAttrId !== attributeIds[attrKey][1]) {
+                        message += "attribute " + attrKey + " have invalid type....";
+                    }
+
+                    // add attribute value
+                    await Database
+                        .table('product_attributes')
+                        .insert({product_id: productNew[0], attribute_id: attributeIds[attrKey][0], value: attributes[attrKey]});
+                }
+
 
             } else {
                 ok = false;
@@ -281,7 +407,7 @@ class ProductController {
             try {
 
                 await Database
-                    .table('attributes')
+                    .table('product_attributes')
                     .where('product_id', productId)
                     .delete();
 
