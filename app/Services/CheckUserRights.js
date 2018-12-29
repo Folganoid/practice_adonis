@@ -53,13 +53,13 @@ async function checkProductOwner(token, prodId) {
 
 async function checkAttributeOwner(token, attrId) {
     try {
-        const isowner = await Database.table('products')
-            .select('products.id as product_id', 'users.id as user_id')
+        const isowner = await Database.table('product_attributes')
+            .select('product_attributes.id')
+            .innerJoin('products', 'products.id', 'product_attributes.product_id')
             .innerJoin('users', 'users.id', 'products.user_id')
-            .innerJoin('attributes', 'attributes.product_id', 'products.id')
             .innerJoin('tokens', 'tokens.user_id', 'users.id')
-            .where('tokens.token', token)
-            .where('attributes.id', attrId);
+            .where('product_attributes.id', attrId)
+            .where('tokens.token', token);
 
         if (isowner.length === 0) {
             return false;

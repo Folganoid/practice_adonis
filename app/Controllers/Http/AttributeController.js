@@ -1,3 +1,15 @@
+/*
+ ##POST
+ localhost:3333/attribute/{productId}?token=Ji4da..&attributeId=1&value=111             - create attribute
+
+ ##PUT
+ localhost:3333/attribute/{attributeId}?token=Ji4da..&value=222&productId=2             - update product params
+
+ ##DELETE
+ localhost:3333/attribute/1?token=Ji4da..                                 - delete attribute by id
+
+*/
+
 const Database = use('Database');
 const Check = require('../../Services/CheckUserRights');
 
@@ -9,27 +21,25 @@ class AttributeController {
         let message = "";
 
         const userToken = request._all.token;
-        const attributeId = request.params.id;
-        const name = request._all.name;
+        const id = request.params.id;
+        const productId = request._all.productId;
         const value = request._all.value;
         const updated_at = new Date();
 
         const isAdmin = await Check.checkAdmin(userToken);
-        const isOwner = await Check.checkAttributeOwner(userToken, attributeId);
+        const isOwner = await Check.checkAttributeOwner(userToken, id);
 
         if (isOwner || isAdmin) {
 
-            let forUpdate = {
-                updated_at: updated_at
-            };
+            let forUpdate = {};
 
-            if (name && name.length > 0 && name.length < 80) forUpdate.name = name;
             if (value && value.length > 0 && value.length < 255) forUpdate.value = value;
+            if (productId && productId > 0) forUpdate.product_id = productId;
 
             try {
                 await Database
-                    .table('attributes')
-                    .where('id', attributeId)
+                    .table('product_attributes')
+                    .where('id', id)
                     .update(forUpdate);
 
                 message = "attribute was updated successfully";
@@ -60,9 +70,8 @@ class AttributeController {
 
         const userToken = request._all.token;
         const productId = request.params.id;
-        const name = request._all.name;
+        const attributeId = request._all.attributeId;
         const value = request._all.value;
-        const created_at = new Date();
 
         const isAdmin = await Check.checkAdmin(userToken);
         const isOwner = await Check.checkProductOwner(userToken, productId);
@@ -71,12 +80,6 @@ class AttributeController {
 
             // validate
             let validate = true;
-            if(!name || name.length === 0 || name.length > 80) {
-                validate = false;
-                message += "Invalid name...";
-                code = 404;
-                ok = false;
-            }
 
             if(!value || value.length === 0 || value.length > 254) {
                 validate = false;
@@ -85,8 +88,15 @@ class AttributeController {
                 ok = false;
             }
 
+            if(!attributeId || attributeId <= 0) {
+                validate = false;
+                message += "Invalid attribute id...";
+                code = 404;
+                ok = false;
+            }
+
             try {
-                await Database.table('attributes').insert({name, value, product_id: productId, created_at});
+                await Database.table('product_attributes').insert({product_id: productId, attribute_id: attributeId, value});
                 message = "create attribute successfully";
             } catch (e) {
                 ok = false;
@@ -114,17 +124,16 @@ class AttributeController {
         let message = "";
 
         const userToken = request._all.token;
-        const attributeId = request.params.id;
+        const id = request.params.id;
 
         const isAdmin = await Check.checkAdmin(userToken);
-        const isOwner = await Check.checkAttributeOwner(userToken, attributeId);
+        const isOwner = await Check.checkAttributeOwner(userToken, id);
 
         if (isOwner || isAdmin) {
             try {
-
                 await Database
-                    .table('attributes')
-                    .where('id', attributeId)
+                    .table('product_attributes')
+                    .where('id', id)
                     .delete();
 
                 message = "attribute was deleted successfully";
