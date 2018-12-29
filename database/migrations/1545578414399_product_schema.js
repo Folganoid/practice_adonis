@@ -5,9 +5,12 @@ class ProductSchema extends Schema {
   up() {
     this.create('products', table => {
       table.increments();
-      table.string('name', 100).notNullable();
-      table.string('type', 50).notNullable();
-      table.double('price').notNullable();
+      table.string('name', 255).notNullable();
+      table
+        .integer('type_id')
+        .unsigned()
+        .references('id')
+        .inTable('types');
       table
         .integer('user_id')
         .unsigned()

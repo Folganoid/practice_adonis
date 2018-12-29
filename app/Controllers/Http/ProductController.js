@@ -25,30 +25,34 @@ const Database = use('Database');
 const Check = require('../../Services/CheckUserRights');
 
 class ProductController {
+  /**
+   * get several products
+   *
+   * @param request
+   * @returns {Promise<{key: number}[]>}
+   */
+  async getProduct({ request }) {
+    let ok = true;
+    let code = 200;
+    let message = "";
+    let prod = [];
+    const filterName = (request._all.filterName !== undefined) ? request._all.filterName : "%";
+    const filterAuthor = (request._all.filterAuthor !== undefined) ? request._all.filterAuthor : "%";
+    const filterType = (request._all.filterType !== undefined) ? request._all.filterType : "%";
+    const orderBy = (request._all.orderBy !== undefined) ? request._all.orderBy : 'id';
+    const orderDir = (request._all.orderDir !== undefined) ? ((request._all.orderDir === "desc" || request._all.orderDir === "asc") ? request._all.orderDir : "asc") : "asc";
 
-    /**
-     * get several products
-     *
-     * @param request
-     * @returns {Promise<{key: number}[]>}
-     */
-    async getProduct({ request }) {
-        let ok = true;
-        let code = 200;
-        let message = "";
-        let prod = [];
-        const filterName = (request._all.filterName !== undefined) ? request._all.filterName : "%";
-        const filterAuthor = (request._all.filterAuthor !== undefined) ? request._all.filterAuthor : "%";
-        const filterType = (request._all.filterType !== undefined) ? request._all.filterType : "%";
-        const orderBy = (request._all.orderBy !== undefined) ? request._all.orderBy : 'id';
-        const orderDir = (request._all.orderDir !== undefined) ? ((request._all.orderDir === "desc" || request._all.orderDir === "asc") ? request._all.orderDir : "asc") : "asc";
+    try {
+      // get products
+      prod = await Database.table('products')
 
-        try {
-
-            // get products
-            prod = await Database
-                .table('products')
-                .select('products.id', 'products.name', 'products.type', 'products.price', 'products.created_at', 'users.username')
+        .select(
+          'products.id',
+          'products.name',
+          'products.type',
+          'products.price',
+          'products.created_at',
+          'users.username')
                 .orderBy(orderBy, orderDir)
                 .innerJoin('users', 'users.id', 'products.user_id')
                 .where('products.name', "like", `%${filterName}%`)

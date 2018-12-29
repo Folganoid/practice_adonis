@@ -5,14 +5,12 @@ class AttributeSchema extends Schema {
   up() {
     this.create('attributes', table => {
       table.increments();
-      table.string('name', 50).notNullable();
-      table.string('value', 50).notNullable();
+      table.string('name', 255).notNullable();
       table
-        .integer('product_id')
+        .integer('type_id')
         .unsigned()
         .references('id')
-        .inTable('products');
-      table.timestamps();
+        .inTable('types');
     });
   }
 
