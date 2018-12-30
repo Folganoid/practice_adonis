@@ -69,7 +69,7 @@ class AttributeController {
 
         const userToken = request._all.token;
         const productId = request.params.id;
-        const attributeId = request._all.attributeId;
+        const name = request._all.name;
         const value = request._all.value;
 
         const isAdmin = await Check.checkAdmin(userToken);
@@ -87,7 +87,7 @@ class AttributeController {
                 ok = false;
             }
 
-            if(!attributeId || attributeId <= 0) {
+            if(!name || name <= 0) {
                 validate = false;
                 message += "Invalid attribute id...";
                 code = 404;
@@ -95,7 +95,26 @@ class AttributeController {
             }
 
             try {
-                await Database.table('product_attributes').insert({product_id: productId, attribute_id: attributeId, value});
+
+                let nameId = await Database.table('attributes').select('id').where('name', name);
+                if (nameId[0] === undefined ) {
+
+                    //get typesIds
+                    let typeIds = {};
+                    const typesTmp = await Database.table('types').select('*').whereIn('name', ['string', 'integer']);
+
+                    for (const typeKey in typesTmp) {
+                        typeIds['type' + typesTmp[typeKey].name] = typesTmp[typeKey].id;
+                    }
+
+                    let typeId = (/^(\d+\.\d+|\d+)$/.test(value)) ? typeIds['typeinteger'] : typeIds['typestring'];
+
+                    nameId = await Database.table('attributes').insert({name, type_id: typeId}).returning('id');
+                    nameId = nameId[0];
+                } else {
+                    nameId = nameId[0].id;
+                }
+                await Database.table('product_attributes').insert({product_id: productId, attribute_id: nameId, value});
                 message = "create attribute successfully";
             } catch (e) {
                 ok = false;
