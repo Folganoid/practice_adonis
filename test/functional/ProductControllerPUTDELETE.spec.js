@@ -30,6 +30,17 @@ test('PUT & DELETE product', async ({ client, assert }) => {
         is_revoked: true
     });
 
+    // create types integer & string if nit exist
+    let strId = await Database.table('types').select('id').where('name', "string");
+    let intId = await Database.table('types').select('id').where('name', "integer");
+
+    if (strId.length === 0) {
+        await Database.table('types').insert({name: "string"});
+    }
+    if (intId.length === 0) {
+        await Database.table('types').insert({name: "integer"});
+    }
+
     // create product through POST-request
     await client
         .post('/product')

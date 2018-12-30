@@ -32,6 +32,20 @@ test('POST & GET product', async ({ client, assert }) => {
         is_revoked: true
     });
 
+    // create types integer & string if nit exist
+    try {
+
+        let strId = await Database.table('types').select('id').where('name', "string");
+        let intId = await Database.table('types').select('id').where('name', "integer");
+
+        if (strId.length === 0) {
+            await Database.table('types').insert({name: "string"});
+        }
+        if (intId.length === 0) {
+            await Database.table('types').insert({name: "integer"});
+        }
+    } catch(e) {}
+
     // create product with attributes through POST-request
     let responsePost = await client
         .post('/product')
@@ -159,7 +173,6 @@ test('POST & GET product', async ({ client, assert }) => {
         .table('users')
         .where('id', userId)
         .delete();
-
 
     // final check
     assert.isTrue(
