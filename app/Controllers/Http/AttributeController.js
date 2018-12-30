@@ -6,7 +6,7 @@
  localhost:3333/attribute/{attributeId}?token=Ji4da..&value=222&productId=2             - update product params
 
  ##DELETE
- localhost:3333/attribute/1?token=Ji4da..                                 - delete attribute by id
+ localhost:3333/attribute/{attributeId}?token=Ji4da..                                 - delete attribute by id
 
 */
 
@@ -24,7 +24,6 @@ class AttributeController {
         const id = request.params.id;
         const productId = request._all.productId;
         const value = request._all.value;
-        const updated_at = new Date();
 
         const isAdmin = await Check.checkAdmin(userToken);
         const isOwner = await Check.checkAttributeOwner(userToken, id);
